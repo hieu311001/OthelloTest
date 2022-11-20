@@ -116,6 +116,36 @@ public class threadServer extends Thread {
         return out;
     }
 
+    // Khởi tạo gói tin gửi lên web server
+    public static byte[] web_pkt(int action, int len_ip, byte[] ip, int port, int type_socket,
+                                 int len_game, byte[] game, int len_info, byte[] info, int len_author, byte[] author) {
+        byte[] ac = convert_data(action);
+        byte[] lenIp = convert_data(len_ip);
+        byte[] p = convert_data(port);
+        byte[] skt = convert_data(type_socket);
+        byte[] gm = convert_data(len_game);
+        byte[] inf = convert_data(len_info);
+        byte[] au = convert_data(len_author);
+
+        int len_skt = 28 + len_ip + len_game + len_info + len_author;
+
+        byte[] out = new byte[len_skt];
+
+        System.arraycopy(ac, 0, out, 0,4);
+        System.arraycopy(lenIp, 0, out, 4, 4);
+        System.arraycopy(ip, 0, out, 8, len_ip);
+        System.arraycopy(p, 0, out, 8 + len_ip, 4);
+        System.arraycopy(skt, 0, out, 12 + len_ip, 4);
+        System.arraycopy(gm, 0, out, 16 + len_ip, 4);
+        System.arraycopy(game, 0 , out , 20 + len_ip + len_game, len_game);
+        System.arraycopy(inf, 0 , out, 20 + len_ip + len_game, 4);
+        System.arraycopy(info, 0 ,out, 24 + len_ip + len_game, len_info);
+        System.arraycopy(au, 0 ,out, 24 + len_ip + len_game + len_info, 4);
+        System.arraycopy(author, 0, out, 28 + len_ip + len_game + len_info, len_author);
+
+        return out;
+    }
+
     public void run() {
         byte[] input = new byte[4];
 
@@ -125,9 +155,6 @@ public class threadServer extends Thread {
 
             InputStream is = socket.getInputStream();
             OutputStream os = socket.getOutputStream();
-
-            String ok = "OK";
-            os.write(ok.getBytes());
 
             while (true) {
                 is.read(input);
