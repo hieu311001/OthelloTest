@@ -131,17 +131,46 @@ public class threadServer extends Thread {
 
         byte[] out = new byte[len_skt];
 
-        System.arraycopy(ac, 0, out, 0,4);
-        System.arraycopy(lenIp, 0, out, 4, 4);
-        System.arraycopy(ip, 0, out, 8, len_ip);
-        System.arraycopy(p, 0, out, 8 + len_ip, 4);
-        System.arraycopy(skt, 0, out, 12 + len_ip, 4);
-        System.arraycopy(gm, 0, out, 16 + len_ip, 4);
-        System.arraycopy(game, 0 , out , 20 + len_ip + len_game, len_game);
-        System.arraycopy(inf, 0 , out, 20 + len_ip + len_game, 4);
-        System.arraycopy(info, 0 ,out, 24 + len_ip + len_game, len_info);
-        System.arraycopy(au, 0 ,out, 24 + len_ip + len_game + len_info, 4);
-        System.arraycopy(author, 0, out, 28 + len_ip + len_game + len_info, len_author);
+        for (int i = 0; i < 4; i++) {
+            out[i] = ac[i];
+            out[i+4] = lenIp[i];
+        }
+
+        for (int i = 8; i< 8 + ip.length; i++) {
+            out[i] = ip[i-8];
+        }
+
+        for (int i = 8 + ip.length; i < 12 + ip.length; i++) {
+            out[i] = p[i-8-ip.length];
+        }
+
+        for (int i = 12 + ip.length; i < 16 + ip.length; i++) {
+            out[i] = skt[i-12-ip.length];
+        }
+
+        for (int i = 16 + ip.length; i < 20 + ip.length; i++) {
+            out[i] = gm[i-16-ip.length];
+        }
+
+        for (int i = 20 + ip.length; i < 20 + ip.length + game.length; i++) {
+            out[i] = game[i-20-ip.length];
+        }
+
+        for (int i = 20 + ip.length + game.length; i < 24 + ip.length + game.length; i++) {
+            out[i] = inf[i-20-ip.length-game.length];
+        }
+
+        for (int i = 24 + ip.length + game.length; i < 24 + ip.length + game.length + info.length; i++) {
+            out[i] = game[i-24-ip.length-game.length];
+        }
+
+        for (int i = 24 + ip.length + game.length + info.length; i < 28 + ip.length + game.length + info.length; i++) {
+            out[i] = au[i-24-ip.length-game.length-info.length];
+        }
+
+        for (int i = 28 + ip.length + game.length + info.length; i < 28 + ip.length + game.length + info.length + author.length; i++) {
+            out[i] = game[i-28-ip.length-game.length-info.length];
+        }
 
         return out;
     }

@@ -16,21 +16,17 @@ public class Server2 {
             ServerSocket sk=new ServerSocket(27001);
 
             // Thông tin kết nối đến web server
-            String ip = "localhost";    byte[] ip_byte = ip.getBytes();
+            String ip = "127.0.0.1";    byte[] ip_byte = ip.getBytes();
             String name_game = "game";  byte[] game_byte = name_game.getBytes();
             String info = "info";       byte[] info_byte = info.getBytes();
             String author = "123";      byte[] auth = author.getBytes();
 
             int length = 28 + ip_byte.length + game_byte.length + info_byte.length + auth.length;
 
-            byte[] a = threadServer.web_pkt(1,ip_byte.length, ip_byte, 8801, 4, game_byte.length, game_byte,
+            byte[] a = threadServer.web_pkt(1,ip_byte.length, ip_byte, 4040, 4, game_byte.length, game_byte,
                     info_byte.length, info_byte, auth.length, auth);
 
             os.write(a);
-
-            byte[] input = new byte[4];
-            is.read(input);
-            System.out.println(input);
 
             System.out.println("Server is connecting....");
             boolean listening=true;
