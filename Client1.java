@@ -3,6 +3,7 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.Random;
+import java.util.Scanner;
 
 
 public class Client1 {
@@ -53,6 +54,8 @@ public class Client1 {
     }
 
     public static void main(String[] args) {
+        // Khởi tạo bộ đọc đầu vào từ bàn phím
+        Scanner myObj = new Scanner(System.in);
         byte[] input = new byte[4];
 
         int type = 0;
@@ -79,9 +82,8 @@ public class Client1 {
                 len = restore(input);
 
                 if (type == 1) {
-                    Random generator = new Random();
-                    int x = generator.nextInt(7) + 1;
-                    int y = generator.nextInt(7) + 1;
+                    int x = myObj.nextInt();
+                    int y = myObj.nextInt();
 
                     System.out.println(x + " và " + y);
                     if (myPoint == "BLACK") {
