@@ -13,7 +13,7 @@ public class Server2 {
 //            InputStream is = skt.getInputStream();
 //            OutputStream os = skt.getOutputStream();
             // Tạo server socket cho 2 client
-            ServerSocket sk=new ServerSocket(27001);
+            ServerSocket sk=new ServerSocket(27000);
 
             // Thông tin kết nối đến web server
 //            String ip = "127.0.0.1";    byte[] ip_byte = ip.getBytes();
@@ -35,7 +35,7 @@ public class Server2 {
                 System.out.println("Server " + serverIndex + " is connect");
             }
         } catch (IOException e) {
-            System.out.print("Ket noi hong");
+            System.out.print(e);
         }
     }
 }

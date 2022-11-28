@@ -9,6 +9,9 @@ public class threadServer extends Thread {
         this.socket = socket;
     }
 
+    public static int blackScore = 0;
+    public static int whiteScore = 0;
+    public static int[] point = {44, -45, -54, 55};
     public static String turn = "BLACK";
     public static int map[][] =
             {{0,0,0,0,0,0,0,0},
@@ -222,17 +225,16 @@ public class threadServer extends Thread {
     }
 
     // Lấy tọa dộ nước đi
-    public static int[] next(byte[] bytes) {
-        int a = restoreInt(bytes);
-        if (a < 0) {
-            a = a*-1;
+    public static int[] next(int move) {
+        if (move < 0) {
+            move = move*-1;
             turn = "WHITE";
         } else {
             turn = "BLACK";
         }
         int b[] = {0, 0};
-        b[0] = a/10;
-        b[1] = a%10;
+        b[0] = move/10;
+        b[1] = move%10;
         return b;
     }
 
@@ -267,13 +269,22 @@ public class threadServer extends Thread {
 
     // Print Map
     public static void printMap(int[][] map){
+        int scoreBlack = 0;
+        int scoreWhite = 0;
         for (int i = 0; i < map.length; i++) {
             for (int j = 0; j < map[i].length; j++) {
                 System.out.print(map[i][j] + " ");
+                if (map[i][j] == 1) {
+                    scoreBlack++;
+                } else if (map[i][j] == 2) {
+                    scoreWhite++;
+                }
             }
             System.out.println("");
         }
         System.out.println("-------------------------------------");
+        blackScore = scoreBlack;
+        whiteScore = scoreWhite;
     }
 
     // Chuyển int thành byte
@@ -305,6 +316,33 @@ public class threadServer extends Thread {
         for (int i = 4; i < 8; i++)         out[i] = len_[i - 4];
         for (int i = 8; i < (8 + len); i++) out[i] = data[i - 8];
 
+        return out;
+    }
+
+    // Tạo chuỗi byte gửi đi ở gói tin 3
+    public static byte[] pkt_map(int blackScore, int whiteScore, int id, int[] point){
+        int len = 12 + point.length*4;
+        byte[] out = new byte[len];
+        byte[] black = convert_data(blackScore);
+        byte[] white = convert_data(whiteScore);
+        // Mã hóa 2 điểm số
+        for (int i = 0; i < 4 ; i++) {
+            out[i] = black[i];
+        }
+        for (int i = 4; i < 8 ; i++) {
+            out[i] = white[i-4];
+        }
+        // Mã hóa id
+        for (int i = 8; i < 12; i++) {
+            out[i] = convert_data(id)[i-8];
+        }
+        // Mã hóa map gửi đi
+        for (int i = 0; i < point.length; i++) {
+            for (int j = 0; j < 4; j++) {
+                byte[] bt = convert_data(point[i]);
+                out[12 +  j + i*4] = bt[j];
+            }
+        }
         return out;
     }
 
@@ -371,7 +409,6 @@ public class threadServer extends Thread {
         byte[] input = new byte[4];
 
         int type = 0;
-        int len = 0;
         try {
 
             InputStream is = socket.getInputStream();
@@ -380,22 +417,36 @@ public class threadServer extends Thread {
             while (true) {
                 is.read(input);
                 type = restoreInt(input);
-                is.read(input);
-                len = restoreInt(input);
 
                 if (type == 0) {
-                    int id = 12345;
-                    printMap(map);
-                    os.write(set_pkt(1, 4, convert_data((int) (id))));
+                    String accept = "OK";
+                    os.write(set_pkt(1, accept.getBytes().length, accept.getBytes()));
                 }
                 else if (type == 2) {
-                    is.read(input);
-                    //int next = restoreInt(input);
-                    getMap(next(input));
-                    //System.out.println(next);
                     printMap(map);
-//                    int id = 12345;
-//                    os.write(set_pkt(1, 4, convert_data((int) (id))));
+                    int nextID = 12345;
+                    int length = 12 + point.length*4;
+
+                    byte[] out = pkt_map(blackScore, whiteScore, nextID, point);
+//                    System.out.println(out);
+                    os.write(set_pkt(3, length, out));
+                }
+                else if (type == 4) {
+                    is.read(input);  int len = restoreInt(input);
+                    is.read(input);  int id = restoreInt(input);
+                    is.read(input);  int point = restoreInt(input);
+
+                    // Dựa vào id để xác định turn này là quân nào đi
+                    if (id == 12345) {
+                        turn = "BLACK";
+                    } else {
+                        turn = "WHITE";
+                    }
+                    System.out.println(len);
+                    System.out.println(id);
+                    System.out.println(point);
+                    int[] move = next(point);
+                    System.out.println(move[0] + ' ' + move[1]);
                 }
             }
         } catch (IOException e) {
