@@ -144,6 +144,7 @@ public class Server {
 
                 if (type == 0) {
                     int id = 12345;
+                    printMap(map);
                     os.write(set_pkt(1, 4, convert_data((int) (id))));
                 }
                 else if (type == 2) {

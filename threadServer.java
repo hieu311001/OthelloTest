@@ -1,4 +1,5 @@
 import java.io.*;
+import java.lang.reflect.Array;
 import java.net.*;
 import java.util.*;
 public class threadServer extends Thread {
@@ -8,6 +9,9 @@ public class threadServer extends Thread {
         this.socket = socket;
     }
 
+    public static int blackScore = 0;
+    public static int whiteScore = 0;
+    public static int[] point = {44, -45, -54, 55};
     public static String turn = "BLACK";
     public static int map[][] =
             {{0,0,0,0,0,0,0,0},
@@ -18,6 +22,193 @@ public class threadServer extends Thread {
                     {0,0,0,0,0,0,0,0},
                     {0,0,0,0,0,0,0,0},
                     {0,0,0,0,0,0,0,0}};
+
+    // Mảng chứa vị trí các quân cờ đen
+    private static List<Integer> blackPos=new ArrayList<Integer>();
+
+    // Mảng chứa vị trí các quân cờ trắng
+    private static List<Integer> whitePos=new ArrayList<Integer>();
+
+    private static boolean canMove(int row, int col, int rowDir, int colDir, int opponent) {
+        int currentRow = row + rowDir;
+        int currentCol = col + colDir;
+
+        // Nếu vượt ra phạm vi bàn cờ thì trả về
+        if (currentRow==8 || currentRow<0 || currentCol==8 || currentCol<0)
+        {
+            return false;
+        }
+
+        // Nếu là quân cờ cùng màu thì trả về
+        if (map[currentRow][currentCol] != opponent && map[currentRow][currentCol] != 0) {
+            return false;
+        }
+
+        while (map[currentRow][currentCol] == opponent) {
+            currentRow = currentRow + rowDir;
+            currentCol = currentCol + colDir;
+
+            if (map[currentRow][currentCol] != opponent && map[currentRow][currentCol] != 0) {
+                return true;
+            }
+
+            if (currentRow==8 || currentRow<0 || currentCol==8 || currentCol<0)
+            {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    // Kiểm tra nước đi hợp lệ
+    private static boolean validMove(int x, int y) {
+        int opponent = 2; // Đối thủ là trắng
+        if (turn == "WHITE") {
+            opponent = 1; // Đối thủ là đen
+        }
+
+        if (map[x][y] == 0) {
+            // Kiểm tra bên pahir
+            if (canMove(x, y, 0, 1, opponent)) {
+                return true;
+            }
+            // Kiểm tra bên trái
+            else if (canMove(x, y, 0, -1, opponent)) {
+                return true;
+            }
+            // Kiểm tra bên dưới
+            else if (canMove(x, y, 1, 0, opponent)) {
+                return true;
+            }
+            // Kiểm tra bên trên
+            else if (canMove(x, y, -1, 0, opponent)) {
+                return true;
+            }
+            // Kiểm tra góc phải dưới
+            else if (canMove(x, y, 1, 1, opponent)) {
+                return true;
+            }
+            // Kiểm tra góc phải trên
+            else if (canMove(x, y, 1, -1, opponent)) {
+                return true;
+            }
+            // Kiểm tra góc trái trên
+            else if (canMove(x, y, -1, -1, opponent)) {
+                return true;
+            }
+            // Kiểm tra góc trái dưới
+            else if (canMove(x, y, -1, 1, opponent)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Logic của 1 lượt đi
+    private static void getTurn(int turn, int row, int col) {
+        // Đặt nước đi là quân cờ
+        map[row][col] = turn;
+
+        // Kiểm tra và lật cờ
+        // Kiểm tra trên và dưới
+        direction(row, col, turn, 0, -1);
+        direction(row, col, turn, 0, 1);
+
+        // Kiểm tra phải và trái
+        direction(row, col, turn, 1,0);
+        direction(row, col, turn, -1, 0);
+
+        // Kiểm tra các góc
+        direction(row, col, turn, 1,1);
+        direction(row, col, turn, 1,-1);
+        direction(row, col, turn, -1,1);
+        direction(row, col, turn, -1,-1);
+    }
+
+    // Lật quân cờ theo hướng nhất định
+    private static void direction (int row, int col, int turn, int colDir, int rowDir) {
+        int currentRow= row + rowDir;
+        int currentCol = col + colDir;
+
+        // Nếu vượt ra phạm vi bàn cờ thì trả về
+        if (currentRow==8 || currentRow<0 || currentCol==8 || currentCol<0)
+        {
+            return;
+        }
+
+        // Nếu tại vị trí đang xét là 1 quân cờ
+        while (map[currentRow][currentCol]==1 || map[currentRow][currentCol]==2)
+        {
+            // Nếu vị trí cuối cùng là quân cờ cùng màu với lượt
+            // thì thực hiện đổi màu tất cả các quân cờ nằm ở hướng ngược lại hướng đã chọn
+            if (map[currentRow][currentCol]==turn)
+            {
+                while(!(row==currentRow && col==currentCol))
+                {
+                    map[currentRow][currentCol]=turn;
+                    currentRow=currentRow-rowDir;
+                    currentCol=currentCol-colDir;
+                }
+                break;
+            }
+            // Tìm vị trí cuối cùng theo hướng đã chọn
+            else
+            {
+                currentRow=currentRow + rowDir;
+                currentCol=currentCol + colDir;
+            }
+
+            // Nếu vượt ra phạm vi bàn cờ thì trả về
+            if (currentRow<0 || currentCol<0 || currentRow==8 || currentCol==8)
+            {
+                break;
+            }
+        }
+    }
+
+    // Xét trường hợp kết thúc game đấu
+    private static boolean gameOver() {
+        boolean over = false;   // Trạng thái game đấu: false = chưa kết thúc, true = đã kết thúc
+        int countPiece = 0; // Đếm số quân cờ trên bàn cờ
+
+        for (int row=0; row<8; row++) {
+            for (int col=0; col<8; col++) {
+                if (map[row][col] != 0) {
+                    countPiece++;
+                }
+                if (countPiece == 64) {
+                    over = true;
+                }
+            }
+        }
+        return over;
+    }
+
+    private static void gameResult() {
+        int countBlack = 0; // Đếm số quân đen
+        int countWhite = 0; // Đếm số quân trắng
+
+        for (int row=0; row<8; row++) {
+            for (int col=0; col<8; col++) {
+                if (map[row][col] == 1) {
+                    countBlack++;
+                }
+                else {
+                    countWhite++;
+                }
+            }
+        }
+        if (countBlack > countWhite) {
+            System.out.println("Ván đấu kết thúc. Đen thắng");
+        }
+        else if (countBlack < countWhite) {
+            System.out.println("Ván đấu kết thúc. Trắng thắng");
+        }
+        else {
+            System.out.println("Ván đấu kết thúc. Hai bên hòa");
+        }
+    }
 
     // Lấy tọa độ các ô
     public static List<Integer> coordinates(int map[][]) {
@@ -34,17 +225,16 @@ public class threadServer extends Thread {
     }
 
     // Lấy tọa dộ nước đi
-    public static int[] next(byte[] bytes) {
-        int a = restoreInt(bytes);
-        if (a < 0) {
-            a = a*-1;
+    public static int[] next(int move) {
+        if (move < 0) {
+            move = move*-1;
             turn = "WHITE";
         } else {
             turn = "BLACK";
         }
         int b[] = {0, 0};
-        b[0] = a/10;
-        b[1] = a%10;
+        b[0] = move/10;
+        b[1] = move%10;
         return b;
     }
 
@@ -52,13 +242,16 @@ public class threadServer extends Thread {
     public static void getMap(int[] a) {
         int x = a[0] - 1;
         int y = a[1] - 1;
-        if (map[x][y] == 0 && turn == "BLACK") {
-            map[x][y] = 1;
-        } else if (map[x][y] == 0 && turn == "WHITE") {
-            map[x][y] = 2;
+        if (validMove(x, y) && turn == "BLACK") {
+            getTurn(1, x, y);
+        } else if (validMove(x, y) && turn == "WHITE") {
+            getTurn(2, x, y);
         }
         else {
             System.out.println("Nước đi thất bại");
+        }
+        if (gameOver()) {
+            gameResult();
         }
     }
 
@@ -76,12 +269,22 @@ public class threadServer extends Thread {
 
     // Print Map
     public static void printMap(int[][] map){
+        int scoreBlack = 0;
+        int scoreWhite = 0;
         for (int i = 0; i < map.length; i++) {
             for (int j = 0; j < map[i].length; j++) {
                 System.out.print(map[i][j] + " ");
+                if (map[i][j] == 1) {
+                    scoreBlack++;
+                } else if (map[i][j] == 2) {
+                    scoreWhite++;
+                }
             }
             System.out.println("");
         }
+        System.out.println("-------------------------------------");
+        blackScore = scoreBlack;
+        whiteScore = scoreWhite;
     }
 
     // Chuyển int thành byte
@@ -113,6 +316,33 @@ public class threadServer extends Thread {
         for (int i = 4; i < 8; i++)         out[i] = len_[i - 4];
         for (int i = 8; i < (8 + len); i++) out[i] = data[i - 8];
 
+        return out;
+    }
+
+    // Tạo chuỗi byte gửi đi ở gói tin 3
+    public static byte[] pkt_map(int blackScore, int whiteScore, int id, int[] point){
+        int len = 12 + point.length*4;
+        byte[] out = new byte[len];
+        byte[] black = convert_data(blackScore);
+        byte[] white = convert_data(whiteScore);
+        // Mã hóa 2 điểm số
+        for (int i = 0; i < 4 ; i++) {
+            out[i] = black[i];
+        }
+        for (int i = 4; i < 8 ; i++) {
+            out[i] = white[i-4];
+        }
+        // Mã hóa id
+        for (int i = 8; i < 12; i++) {
+            out[i] = convert_data(id)[i-8];
+        }
+        // Mã hóa map gửi đi
+        for (int i = 0; i < point.length; i++) {
+            for (int j = 0; j < 4; j++) {
+                byte[] bt = convert_data(point[i]);
+                out[12 +  j + i*4] = bt[j];
+            }
+        }
         return out;
     }
 
@@ -179,7 +409,6 @@ public class threadServer extends Thread {
         byte[] input = new byte[4];
 
         int type = 0;
-        int len = 0;
         try {
 
             InputStream is = socket.getInputStream();
@@ -188,19 +417,36 @@ public class threadServer extends Thread {
             while (true) {
                 is.read(input);
                 type = restoreInt(input);
-                is.read(input);
-                len = restoreInt(input);
 
                 if (type == 0) {
-                    int id = 12345;
-                    os.write(set_pkt(1, 4, convert_data((int) (id))));
+                    String accept = "OK";
+                    os.write(set_pkt(1, accept.getBytes().length, accept.getBytes()));
                 }
                 else if (type == 2) {
-                    is.read(input);
-                    //int next = restoreInt(input);
-                    getMap(next(input));
-                    //System.out.println(next);
                     printMap(map);
+                    int nextID = 12345;
+                    int length = 12 + point.length*4;
+
+                    byte[] out = pkt_map(blackScore, whiteScore, nextID, point);
+//                    System.out.println(out);
+                    os.write(set_pkt(3, length, out));
+                }
+                else if (type == 4) {
+                    is.read(input);  int len = restoreInt(input);
+                    is.read(input);  int id = restoreInt(input);
+                    is.read(input);  int point = restoreInt(input);
+
+                    // Dựa vào id để xác định turn này là quân nào đi
+                    if (id == 12345) {
+                        turn = "BLACK";
+                    } else {
+                        turn = "WHITE";
+                    }
+                    System.out.println(len);
+                    System.out.println(id);
+                    System.out.println(point);
+                    int[] move = next(point);
+                    System.out.println(move[0] + ' ' + move[1]);
                 }
             }
         } catch (IOException e) {
