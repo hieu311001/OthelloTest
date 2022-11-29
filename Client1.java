@@ -13,7 +13,7 @@ public class Client1 {
     public static int myID;
     public static int lenMap;
     public static String IP = "localhost";
-    public static final int PORT = 27000;
+    public static final int PORT = 27001;
     public static final String MSV = "19020292";
     public static final String myPoint = "BLACK";
     public static int blackScore = 0;
@@ -102,7 +102,7 @@ public class Client1 {
             out[i] = convert_data(id)[i];
         }
         for (int i = 4; i < 8; i++) {
-            out[i] = convert_data(x*10*y)[i-4];
+            out[i] = convert_data(x*10+y)[i-4];
         }
 
         return out;
@@ -147,15 +147,18 @@ public class Client1 {
 
                 is.read(input);
                 type = restore(input);
+                is.read(input);
+                len = restore(input);
 
                 if (type == 1) {
                     myID  = 12345;
-
-                    os.write(set_pkt(2, 4, convert_data(myID)));
+                    is.read(input);
+                    int req = restore(input);
+                    if (req == 1) {
+                        os.write(set_pkt(2, 4, convert_data(myID)));
+                    }
                 }
                 else if (type == 3) {
-                    is.read(input);
-                    len = restore(input);
                     // Lấy phần data còn lại sau khi lấy ra type và len
                     byte[] out = new byte[len];
                     is.read(out);
@@ -171,14 +174,11 @@ public class Client1 {
                         int y = myObj.nextInt();
                         // Gửi gói tin chứa thông tin nước đi
                         os.write(set_pkt(4, 8, pkt_turn(myID, x, y)));
-                        System.out.println(pkt_turn(myID, x, y));
                     }
                 }
                 else if (type == 5) {
                     System.out.println("Nước đi của bạn không họp lệ!");
 
-                    is.read(input);
-                    len = restore(input);
                     // Lấy phần data còn lại sau khi lấy ra type và len
                     byte[] out = new byte[len];
                     is.read(out);

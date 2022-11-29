@@ -11,6 +11,9 @@ public class threadServer extends Thread {
 
     public static int blackScore = 0;
     public static int whiteScore = 0;
+    public static int blackID = 12345;
+    public static int whiteID = 12346;
+    public static int nextID = 12346;
     public static int[] point = {44, -45, -54, 55};
     public static String turn = "BLACK";
     public static int map[][] =
@@ -239,7 +242,7 @@ public class threadServer extends Thread {
     }
 
     // Thực hiện bước đi
-    public static void getMap(int[] a) {
+    public static boolean getMap(int[] a) {
         int x = a[0] - 1;
         int y = a[1] - 1;
         if (validMove(x, y) && turn == "BLACK") {
@@ -249,10 +252,12 @@ public class threadServer extends Thread {
         }
         else {
             System.out.println("Nước đi thất bại");
+            return false;
         }
         if (gameOver()) {
             gameResult();
         }
+        return true;
     }
 
 //    public static byte[] convert_map(int[][] map) {
@@ -409,6 +414,7 @@ public class threadServer extends Thread {
         byte[] input = new byte[4];
 
         int type = 0;
+        int len = 0;
         try {
 
             InputStream is = socket.getInputStream();
@@ -417,12 +423,17 @@ public class threadServer extends Thread {
             while (true) {
                 is.read(input);
                 type = restoreInt(input);
+                is.read(input);
+                len = restoreInt(input);
 
                 if (type == 0) {
-                    String accept = "OK";
-                    os.write(set_pkt(1, accept.getBytes().length, accept.getBytes()));
+                    // Gửi gói tin xác nhân kết nối thành công
+                    int accept = 1;
+                    os.write(set_pkt(1, 4, convert_data(accept)));
                 }
                 else if (type == 2) {
+                    is.read(input); int id = restoreInt(input);
+                    System.out.println(id);
                     printMap(map);
                     int nextID = 12345;
                     int length = 12 + point.length*4;
@@ -432,9 +443,8 @@ public class threadServer extends Thread {
                     os.write(set_pkt(3, length, out));
                 }
                 else if (type == 4) {
-                    is.read(input);  int len = restoreInt(input);
                     is.read(input);  int id = restoreInt(input);
-                    is.read(input);  int point = restoreInt(input);
+                    is.read(input);  int points = restoreInt(input);
 
                     // Dựa vào id để xác định turn này là quân nào đi
                     if (id == 12345) {
@@ -442,15 +452,27 @@ public class threadServer extends Thread {
                     } else {
                         turn = "WHITE";
                     }
-                    System.out.println(len);
-                    System.out.println(id);
-                    System.out.println(point);
-                    int[] move = next(point);
-                    System.out.println(move[0] + ' ' + move[1]);
+
+                    int[] move = next(points);
+                    boolean checkPoint = getMap(move);
+                    if (!checkPoint) {
+                        int length = 12 + point.length*4;
+                        byte[] out = pkt_map(blackScore, whiteScore, id, point);
+
+                        os.write(set_pkt(5, length, out));
+                    } else {
+                        int nextID = 12346;
+                        int length = 12 + point.length*4;
+
+                        byte[] out = pkt_map(blackScore, whiteScore, nextID, point);
+                        os.write(set_pkt(3, length, out));
+                    }
+                    printMap(map);
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
+            System.out.println("Kết nối hỏng");
         }
     }
 }
