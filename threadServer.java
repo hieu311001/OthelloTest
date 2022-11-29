@@ -13,7 +13,9 @@ public class threadServer extends Thread {
     public static int whiteScore = 0;
     public static int blackID = 12345;
     public static int whiteID = 12346;
-    public static int nextID = 12346;
+    public static int nextID = 12345;
+    public static int winID = 0;
+    public static int numPlayer = 0;
     public static List<Integer> point = new ArrayList<Integer>();
     public static String turn = "BLACK";
     public static int map[][] =
@@ -204,12 +206,15 @@ public class threadServer extends Thread {
         }
         if (countBlack > countWhite) {
             System.out.println("Ván đấu kết thúc. Đen thắng");
+            winID = blackID;
         }
         else if (countBlack < countWhite) {
             System.out.println("Ván đấu kết thúc. Trắng thắng");
+            winID = whiteID;
         }
         else {
             System.out.println("Ván đấu kết thúc. Hai bên hòa");
+            winID = 1;
         }
     }
 
@@ -435,14 +440,17 @@ public class threadServer extends Thread {
                     os.write(set_pkt(1, 4, convert_data(accept)));
                 }
                 else if (type == 2) {
+                    numPlayer++;
                     is.read(input); int id = restoreInt(input);
                     System.out.println("ID người chơi: " + id);
-                    printMap(map);
-                    int nextID = 12345;
-                    int length = 12 + point.size()*4;
 
-                    byte[] out = pkt_map(blackScore, whiteScore, nextID, point);
+
 //                    System.out.println(out);
+                    printMap(map);
+
+                    int length = 12 + point.size()*4;
+                    byte[] out = pkt_map(blackScore, whiteScore, blackID, point);
+
                     os.write(set_pkt(3, length, out));
                 }
                 else if (type == 4) {
@@ -450,9 +458,9 @@ public class threadServer extends Thread {
                     is.read(input);  int points = restoreInt(input);
 
                     // Dựa vào id để xác định turn này là quân nào đi
-                    if (id == 12345) {
+                    if (id == blackID) {
                         turn = "BLACK";
-                    } else {
+                    } else if (id == whiteID){
                         turn = "WHITE";
                     }
 
@@ -465,11 +473,23 @@ public class threadServer extends Thread {
 
                         os.write(set_pkt(5, length, out));
                     } else {
-                        int nextID = 12346;
+                        if (nextID == blackID) {
+                            nextID = whiteID;
+                        } else if(nextID == whiteID) {
+                            nextID = blackID;
+                        }
                         int length = 12 + point.size()*4;
 
                         byte[] out = pkt_map(blackScore, whiteScore, nextID, point);
                         os.write(set_pkt(3, length, out));
+                    }
+
+                    if( winID != 0 && winID !=1) {
+                        System.out.println("Người chiến thắng là: " + winID);
+                        os.write(set_pkt(6, 4, convert_data(winID)));
+                    } else if (winID == 1) {
+                        System.out.println("Kết quả hòa");
+                        os.write(set_pkt(6, 4, convert_data(1)));
                     }
                 }
             }

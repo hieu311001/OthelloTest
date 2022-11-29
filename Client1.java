@@ -174,6 +174,8 @@ public class Client1 {
                         int y = myObj.nextInt();
                         // Gửi gói tin chứa thông tin nước đi
                         os.write(set_pkt(4, 8, pkt_turn(myID, x, y)));
+                    } else {
+                        System.out.println("Lượt đối thủ");
                     }
                 }
                 else if (type == 5) {
