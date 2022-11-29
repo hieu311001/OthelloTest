@@ -14,7 +14,7 @@ public class threadServer extends Thread {
     public static int blackID = 12345;
     public static int whiteID = 12346;
     public static int nextID = 12346;
-    public static int[] point = {44, -45, -54, 55};
+    public static List<Integer> point = new ArrayList<Integer>();
     public static String turn = "BLACK";
     public static int map[][] =
             {{0,0,0,0,0,0,0,0},
@@ -274,6 +274,7 @@ public class threadServer extends Thread {
 
     // Print Map
     public static void printMap(int[][] map){
+        point.clear();
         int scoreBlack = 0;
         int scoreWhite = 0;
         for (int i = 0; i < map.length; i++) {
@@ -281,7 +282,9 @@ public class threadServer extends Thread {
                 System.out.print(map[i][j] + " ");
                 if (map[i][j] == 1) {
                     scoreBlack++;
+                    point.add((i+1)*10+j+1);
                 } else if (map[i][j] == 2) {
+                    point.add(-((i+1)*10+j+1));
                     scoreWhite++;
                 }
             }
@@ -325,8 +328,8 @@ public class threadServer extends Thread {
     }
 
     // Tạo chuỗi byte gửi đi ở gói tin 3
-    public static byte[] pkt_map(int blackScore, int whiteScore, int id, int[] point){
-        int len = 12 + point.length*4;
+    public static byte[] pkt_map(int blackScore, int whiteScore, int id, List<Integer> point){
+        int len = 12 + point.size()*4;
         byte[] out = new byte[len];
         byte[] black = convert_data(blackScore);
         byte[] white = convert_data(whiteScore);
@@ -342,9 +345,9 @@ public class threadServer extends Thread {
             out[i] = convert_data(id)[i-8];
         }
         // Mã hóa map gửi đi
-        for (int i = 0; i < point.length; i++) {
+        for (int i = 0; i < point.size(); i++) {
             for (int j = 0; j < 4; j++) {
-                byte[] bt = convert_data(point[i]);
+                byte[] bt = convert_data(point.get(i));
                 out[12 +  j + i*4] = bt[j];
             }
         }
@@ -433,10 +436,10 @@ public class threadServer extends Thread {
                 }
                 else if (type == 2) {
                     is.read(input); int id = restoreInt(input);
-                    System.out.println(id);
+                    System.out.println("ID người chơi: " + id);
                     printMap(map);
                     int nextID = 12345;
-                    int length = 12 + point.length*4;
+                    int length = 12 + point.size()*4;
 
                     byte[] out = pkt_map(blackScore, whiteScore, nextID, point);
 //                    System.out.println(out);
@@ -455,19 +458,19 @@ public class threadServer extends Thread {
 
                     int[] move = next(points);
                     boolean checkPoint = getMap(move);
+                    printMap(map);
                     if (!checkPoint) {
-                        int length = 12 + point.length*4;
+                        int length = 12 + point.size()*4;
                         byte[] out = pkt_map(blackScore, whiteScore, id, point);
 
                         os.write(set_pkt(5, length, out));
                     } else {
                         int nextID = 12346;
-                        int length = 12 + point.length*4;
+                        int length = 12 + point.size()*4;
 
                         byte[] out = pkt_map(blackScore, whiteScore, nextID, point);
                         os.write(set_pkt(3, length, out));
                     }
-                    printMap(map);
                 }
             }
         } catch (IOException e) {
