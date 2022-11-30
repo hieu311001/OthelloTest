@@ -14,17 +14,19 @@ public class threadServer extends Thread {
     public static int blackID = 12345;
     public static int whiteID = 12346;
     public static int nextID = 12346;
+    public static List<ConnectionHandler> clients = new ArrayList<>();
+    public static Object lock = new Object();
     public static List<Integer> point = new ArrayList<Integer>();
     public static String turn = "BLACK";
     public static int map[][] =
-            {{0,0,0,0,0,0,0,0},
-                    {0,0,0,0,0,0,0,0},
-                    {0,0,0,0,0,0,0,0},
-                    {0,0,0,1,2,0,0,0},
-                    {0,0,0,2,1,0,0,0},
-                    {0,0,0,0,0,0,0,0},
-                    {0,0,0,0,0,0,0,0},
-                    {0,0,0,0,0,0,0,0}};
+                    {{1,1,1,1,1,1,1,1},
+                    {1,1,1,1,1,1,1,1},
+                    {1,1,1,1,1,1,1,1},
+                    {2,2,2,1,2,2,2,0},
+                    {2,2,2,2,1,2,2,2},
+                    {1,1,1,1,1,1,1,1},
+                    {1,1,1,1,1,1,1,1},
+                    {1,1,1,1,1,1,1,1}};
 
     // Mảng chứa vị trí các quân cờ đen
     private static List<Integer> blackPos=new ArrayList<Integer>();
@@ -42,8 +44,8 @@ public class threadServer extends Thread {
             return false;
         }
 
-        // Nếu là quân cờ cùng màu thì trả về
-        if (map[currentRow][currentCol] != opponent && map[currentRow][currentCol] != 0) {
+        // Nếu là quân cờ cùng màu hoặc không có quân cờ nào thì trả về
+        if ((map[currentRow][currentCol] != opponent && map[currentRow][currentCol] != 0) || map[currentRow][currentCol] == 0) {
             return false;
         }
 
@@ -72,7 +74,7 @@ public class threadServer extends Thread {
         }
 
         if (map[x][y] == 0) {
-            // Kiểm tra bên pahir
+            // Kiểm tra bên phải
             if (canMove(x, y, 0, 1, opponent)) {
                 return true;
             }
@@ -93,7 +95,7 @@ public class threadServer extends Thread {
                 return true;
             }
             // Kiểm tra góc phải trên
-            else if (canMove(x, y, 1, -1, opponent)) {
+            else if (canMove(x, y, -1, 1, opponent)) {
                 return true;
             }
             // Kiểm tra góc trái trên
@@ -101,7 +103,7 @@ public class threadServer extends Thread {
                 return true;
             }
             // Kiểm tra góc trái dưới
-            else if (canMove(x, y, -1, 1, opponent)) {
+            else if (canMove(x, y, 1, -1, opponent)) {
                 return true;
             }
         }
@@ -229,11 +231,9 @@ public class threadServer extends Thread {
 
     // Lấy tọa dộ nước đi
     public static int[] next(int move) {
+        System.out.print(move);
         if (move < 0) {
             move = move*-1;
-            turn = "WHITE";
-        } else {
-            turn = "BLACK";
         }
         int b[] = {0, 0};
         b[0] = move/10;
@@ -243,6 +243,7 @@ public class threadServer extends Thread {
 
     // Thực hiện bước đi
     public static boolean getMap(int[] a) {
+        System.out.println(turn);
         int x = a[0] - 1;
         int y = a[1] - 1;
         if (validMove(x, y) && turn == "BLACK") {
@@ -250,12 +251,8 @@ public class threadServer extends Thread {
         } else if (validMove(x, y) && turn == "WHITE") {
             getTurn(2, x, y);
         }
-        else {
-            System.out.println("Nước đi thất bại");
+        else if (!validMove(x, y)) {
             return false;
-        }
-        if (gameOver()) {
-            gameResult();
         }
         return true;
     }
@@ -438,17 +435,20 @@ public class threadServer extends Thread {
                     is.read(input); int id = restoreInt(input);
                     System.out.println("ID người chơi: " + id);
                     printMap(map);
+
                     int nextID = 12345;
                     int length = 12 + point.size()*4;
 
                     byte[] out = pkt_map(blackScore, whiteScore, nextID, point);
 //                    System.out.println(out);
                     os.write(set_pkt(3, length, out));
+
                 }
                 else if (type == 4) {
                     is.read(input);  int id = restoreInt(input);
                     is.read(input);  int points = restoreInt(input);
 
+                    System.out.println(id);
                     // Dựa vào id để xác định turn này là quân nào đi
                     if (id == 12345) {
                         turn = "BLACK";
@@ -465,17 +465,73 @@ public class threadServer extends Thread {
 
                         os.write(set_pkt(5, length, out));
                     } else {
-                        int nextID = 12346;
-                        int length = 12 + point.size()*4;
+                        if (id == 12345) {
+                            nextID = 12346;
+                        }
+                        else {
+                            nextID = 12345;
+                        }
 
+                        if (gameOver()) {
+                            gameResult();
+                        }
+//                        os.write(set_pkt(3, length, out));
+                    }
+                    if(gameOver()) {
+                        os.write(set_pkt(6, 4, convert_data(id)));
+                    }
+                    else {
+                        int length = 12 + point.size()*4;
                         byte[] out = pkt_map(blackScore, whiteScore, nextID, point);
-                        os.write(set_pkt(3, length, out));
+                        for (ConnectionHandler client : clients) {
+                            client.sendData(set_pkt(3, length, out));
+                        }
                     }
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println("Kết nối hỏng");
+        }
+    }
+
+    public static void main(String[] args) {
+        int serverIndex = 0;
+        try {
+            // Kết nối đến web server
+//            Socket skt = new Socket("104.194.240.16", 8081);
+//            InputStream is = skt.getInputStream();
+//            OutputStream os = skt.getOutputStream();
+            // Tạo server socket cho 2 client
+            ServerSocket sk=new ServerSocket(27001);
+
+            // Thông tin kết nối đến web server
+//            String ip = "127.0.0.1";    byte[] ip_byte = ip.getBytes();
+//            String name_game = "game";  byte[] game_byte = name_game.getBytes();
+//            String info = "info";       byte[] info_byte = info.getBytes();
+//            String author = "123";      byte[] auth = author.getBytes();
+
+//            int length = 28 + ip_byte.length + game_byte.length + info_byte.length + auth.length;
+//
+//            byte[] a = threadServer.web_pkt(1,ip_byte.length, ip_byte, 4040, game_byte.length, game_byte, info_byte.length, info_byte, auth.length, auth);
+//
+//            os.write(a);
+
+            System.out.println("Server is connecting....");
+            boolean listening=true;
+            while(listening){
+                serverIndex++;
+                Socket socket = sk.accept();
+                ConnectionHandler client = new ConnectionHandler(sk, socket);
+                synchronized (lock) {
+                    clients.add(client);
+                }
+                new threadServer(socket).start();
+
+                System.out.println("Server " + serverIndex + " is connect");
+            }
+        } catch (IOException e) {
+            System.out.print(e);
         }
     }
 }

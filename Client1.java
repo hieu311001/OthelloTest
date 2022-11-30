@@ -136,6 +136,7 @@ public class Client1 {
             IP = InetAddress.getLocalHost().getHostAddress();
 
             skt = new Socket(IP, PORT);
+            System.out.println(skt);
             System.out.println("Client is Connect");
             InputStream is = skt.getInputStream();
             OutputStream os = skt.getOutputStream();

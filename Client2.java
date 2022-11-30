@@ -147,6 +147,7 @@ public class Client2 {
 
                 is.read(input);
                 type = restore(input);
+                System.out.println(type);
                 is.read(input);
                 len = restore(input);
 
@@ -175,7 +176,6 @@ public class Client2 {
                         int y = myObj.nextInt();
                         // Gửi gói tin chứa thông tin nước đi
                         os.write(set_pkt(4, 8, pkt_turn(myID, x, y)));
-                        System.out.println(pkt_turn(myID, x, y));
                     } else {
                         System.out.println("Lượt đối thủ");
                     }
