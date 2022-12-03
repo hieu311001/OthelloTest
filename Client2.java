@@ -13,7 +13,7 @@ public class Client2 {
     public static int myID;
     public static int lenMap;
     public static String IP = "localhost";
-    public static final int PORT = 27001;
+    public static final int PORT = 80;
     public static final String MSV = "19020292";
     public static final String myPoint = "WHITE";
     public static int blackScore = 0;
@@ -147,7 +147,6 @@ public class Client2 {
 
                 is.read(input);
                 type = restore(input);
-                System.out.println(type);
                 is.read(input);
                 len = restore(input);
 
@@ -204,8 +203,12 @@ public class Client2 {
 
                     if(id == myID) {
                         System.out.println("Bạn đã giành chiến thắng!");
-                    } else {
+                    }
+                    else if (id == 12345) {
                         System.out.println("Bạn đã thua!");
+                    }
+                    else {
+                        System.out.println("Bạn đã hòa!");
                     }
                 }
             }

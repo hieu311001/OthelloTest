@@ -19,21 +19,14 @@ public class threadServer extends Thread {
     public static List<Integer> point = new ArrayList<Integer>();
     public static String turn = "BLACK";
     public static int map[][] =
-                    {{1,1,1,1,1,1,1,1},
-                    {1,1,1,1,1,1,1,1},
-                    {1,1,1,1,1,1,1,1},
-                    {2,2,2,1,2,2,2,0},
-                    {2,2,2,2,1,2,2,2},
-                    {1,1,1,1,1,1,1,1},
-                    {1,1,1,1,1,1,1,1},
-                    {1,1,1,1,1,1,1,1}};
-
-    // Mảng chứa vị trí các quân cờ đen
-    private static List<Integer> blackPos=new ArrayList<Integer>();
-
-    // Mảng chứa vị trí các quân cờ trắng
-    private static List<Integer> whitePos=new ArrayList<Integer>();
-
+                    {{0,0,0,0,0,0,0,0},
+                    {0,0,0,0,0,0,0,0},
+                    {0,0,0,0,0,0,0,0},
+                    {0,0,0,1,2,0,0,0},
+                    {0,0,0,2,1,0,0,0},
+                    {0,0,0,0,0,0,0,0},
+                    {0,0,0,0,0,0,0,0},
+                    {0,0,0,0,0,0,0,0}};
     private static boolean canMove(int row, int col, int rowDir, int colDir, int opponent) {
         int currentRow = row + rowDir;
         int currentCol = col + colDir;
@@ -53,14 +46,16 @@ public class threadServer extends Thread {
             currentRow = currentRow + rowDir;
             currentCol = currentCol + colDir;
 
-            if (map[currentRow][currentCol] != opponent && map[currentRow][currentCol] != 0) {
-                return true;
-            }
-
             if (currentRow==8 || currentRow<0 || currentCol==8 || currentCol<0)
             {
                 return false;
             }
+
+            if (map[currentRow][currentCol] != opponent && map[currentRow][currentCol] != 0) {
+                return true;
+            }
+
+
         }
 
         return false;
@@ -174,20 +169,34 @@ public class threadServer extends Thread {
 
     // Xét trường hợp kết thúc game đấu
     private static boolean gameOver() {
-        boolean over = false;   // Trạng thái game đấu: false = chưa kết thúc, true = đã kết thúc
-        int countPiece = 0; // Đếm số quân cờ trên bàn cờ
-
-        for (int row=0; row<8; row++) {
-            for (int col=0; col<8; col++) {
-                if (map[row][col] != 0) {
-                    countPiece++;
+        // Nếu bàn cờ đã hết quân
+        if (blackScore + whiteScore == 64) {
+            return true;
+        }
+        // Nếu bàn cờ chỉ có quân trắng
+        if (blackScore == 0) {
+            return true;
+        }
+        // Nếu bàn cờ chỉ có quân đen
+        if (whiteScore == 0) {
+            return true;
+        }
+        // Nếu bàn cờ không còn nước đi
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                if (turn == "BLACK") {
+                    turn = "WHITE";
                 }
-                if (countPiece == 64) {
-                    over = true;
+                else {
+                    turn = "BLACK";
+                }
+
+                if (validMove(i, j)) {
+                    return false;
                 }
             }
         }
-        return over;
+        return true;
     }
 
     private static void gameResult() {
@@ -231,7 +240,6 @@ public class threadServer extends Thread {
 
     // Lấy tọa dộ nước đi
     public static int[] next(int move) {
-        System.out.print(move);
         if (move < 0) {
             move = move*-1;
         }
@@ -243,7 +251,6 @@ public class threadServer extends Thread {
 
     // Thực hiện bước đi
     public static boolean getMap(int[] a) {
-        System.out.println(turn);
         int x = a[0] - 1;
         int y = a[1] - 1;
         if (validMove(x, y) && turn == "BLACK") {
@@ -448,7 +455,6 @@ public class threadServer extends Thread {
                     is.read(input);  int id = restoreInt(input);
                     is.read(input);  int points = restoreInt(input);
 
-                    System.out.println(id);
                     // Dựa vào id để xác định turn này là quân nào đi
                     if (id == 12345) {
                         turn = "BLACK";
@@ -471,14 +477,21 @@ public class threadServer extends Thread {
                         else {
                             nextID = 12345;
                         }
-
-                        if (gameOver()) {
-                            gameResult();
-                        }
-//                        os.write(set_pkt(3, length, out));
                     }
                     if(gameOver()) {
-                        os.write(set_pkt(6, 4, convert_data(id)));
+                        gameResult();
+                        if (blackScore > whiteScore) {
+                            id = 12345;
+                        }
+                        else if (blackScore < whiteScore) {
+                            id = 12346;
+                        }
+                        else {
+                            id = 0;
+                        }
+                        for (ConnectionHandler client : clients) {
+                            client.sendData(set_pkt(6, 4, convert_data(id)));
+                        }
                     }
                     else {
                         int length = 12 + point.size()*4;
@@ -503,7 +516,7 @@ public class threadServer extends Thread {
 //            InputStream is = skt.getInputStream();
 //            OutputStream os = skt.getOutputStream();
             // Tạo server socket cho 2 client
-            ServerSocket sk=new ServerSocket(27001);
+            ServerSocket sk=new ServerSocket(80);
 
             // Thông tin kết nối đến web server
 //            String ip = "127.0.0.1";    byte[] ip_byte = ip.getBytes();
