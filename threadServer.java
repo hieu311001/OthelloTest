@@ -18,7 +18,7 @@ public class threadServer extends Thread {
     public static int numPlayer = 0;
     public static List<Integer> point = new ArrayList<Integer>();
     public static String turn = "BLACK";
-    public static int map[][] =
+    public static int[][] map =
             {{0,0,0,0,0,0,0,0},
                     {0,0,0,0,0,0,0,0},
                     {0,0,0,0,0,0,0,0},
@@ -29,10 +29,10 @@ public class threadServer extends Thread {
                     {0,0,0,0,0,0,0,0}};
 
     // Mảng chứa vị trí các quân cờ đen
-    private static List<Integer> blackPos=new ArrayList<Integer>();
+    private static final List<Integer> blackPos=new ArrayList<Integer>();
 
     // Mảng chứa vị trí các quân cờ trắng
-    private static List<Integer> whitePos=new ArrayList<Integer>();
+    private static final List<Integer> whitePos=new ArrayList<Integer>();
 
     private static boolean canMove(int row, int col, int rowDir, int colDir, int opponent) {
         int currentRow = row + rowDir;
@@ -103,9 +103,7 @@ public class threadServer extends Thread {
                 return true;
             }
             // Kiểm tra góc trái dưới
-            else if (canMove(x, y, -1, 1, opponent)) {
-                return true;
-            }
+            else return canMove(x, y, -1, 1, opponent);
         }
         return false;
     }
@@ -219,7 +217,7 @@ public class threadServer extends Thread {
     }
 
     // Lấy tọa độ các ô
-    public static List<Integer> coordinates(int map[][]) {
+    public static List<Integer> coordinates(int[][] map) {
         List<Integer> a = new ArrayList<Integer>();
         for (int i = 1; i <= map.length; i++) {
             for (int j = 1; j <= map[i-1].length; j++) {
@@ -240,20 +238,22 @@ public class threadServer extends Thread {
         } else {
             turn = "BLACK";
         }
-        int b[] = {0, 0};
+        int[] b = {0, 0};
         b[0] = move/10;
         b[1] = move%10;
         return b;
     }
 
     // Thực hiện bước đi
-    public static boolean getMap(int[] a) {
+    public static boolean getMap(int[] a, Board board) {
         int x = a[0] - 1;
         int y = a[1] - 1;
         if (validMove(x, y) && turn == "BLACK") {
             getTurn(1, x, y);
+            board.paint(map);
         } else if (validMove(x, y) && turn == "WHITE") {
             getTurn(2, x, y);
+            board.paint(map);
         }
         else {
             System.out.println("Nước đi thất bại");
@@ -293,7 +293,7 @@ public class threadServer extends Thread {
                     scoreWhite++;
                 }
             }
-            System.out.println("");
+            System.out.println();
         }
         System.out.println("-------------------------------------");
         blackScore = scoreBlack;
@@ -419,6 +419,9 @@ public class threadServer extends Thread {
     }
 
     public void run() {
+        Board board = new Board();
+        board.paint(map);
+        board.view();
         byte[] input = new byte[4];
 
         int type = 0;
@@ -465,7 +468,7 @@ public class threadServer extends Thread {
                     }
 
                     int[] move = next(points);
-                    boolean checkPoint = getMap(move);
+                    boolean checkPoint = getMap(move, board);
                     printMap(map);
                     if (!checkPoint) {
                         int length = 12 + point.size()*4;
@@ -482,6 +485,21 @@ public class threadServer extends Thread {
 
                         byte[] out = pkt_map(blackScore, whiteScore, nextID, point);
                         os.write(set_pkt(3, length, out));
+//                        if (id == blackID) {
+//                            int length = 12 + point.size()*4;
+//
+//                            byte[] out = pkt_map(blackScore, whiteScore, whiteID, point);
+//                            os.write(set_pkt(10, length, out));
+//                            byte[] out2 = pkt_map(blackScore, whiteScore, whiteID, point);
+//                            os.write(set_pkt(3, length, out2));
+//                        } else if (id == whiteID) {
+//                            int length = 12 + point.size()*4;
+//
+//                            byte[] out = pkt_map(blackScore, whiteScore, blackID, point);
+//                            os.write(set_pkt(3, length, out));
+//                            byte[] out2 = pkt_map(blackScore, whiteScore, whiteID, point);
+//                            os.write(set_pkt(10, length, out2));
+//                        }
                     }
 
                     if( winID != 0 && winID !=1) {

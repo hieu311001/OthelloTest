@@ -12,8 +12,8 @@ public class Client2 {
     public static int ID;
     public static int myID;
     public static int lenMap;
-    public static String IP = "localhost";
-    public static final int PORT = 27001;
+    public static String IP = "0.tcp.ap.ngrok.io";
+    public static final int PORT = 16721;
     public static final String MSV = "19020292";
     public static final String myPoint = "WHITE";
     public static int blackScore = 0;
@@ -132,11 +132,12 @@ public class Client2 {
         Socket skt = null;
         try {
             System.out.println("Client is Connecting....");
+
             // Lấy ip của máy tĩnh
-            IP = InetAddress.getLocalHost().getHostAddress();
 
             skt = new Socket(IP, PORT);
-            System.out.println("Client is Connect");
+            System.out.println(skt);
+
             InputStream is = skt.getInputStream();
             OutputStream os = skt.getOutputStream();
             byte[] barr = MSV.getBytes();
@@ -151,6 +152,7 @@ public class Client2 {
                 len = restore(input);
 
                 if (type == 1) {
+                    System.out.println("Client is Connect");
                     myID  = 12346;
                     is.read(input);
                     int req = restore(input);

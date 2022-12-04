@@ -136,7 +136,7 @@ public class Client1 {
             IP = InetAddress.getLocalHost().getHostAddress();
 
             skt = new Socket(IP, PORT);
-            System.out.println("Client is Connect");
+
             InputStream is = skt.getInputStream();
             OutputStream os = skt.getOutputStream();
             byte[] barr = MSV.getBytes();
@@ -151,6 +151,7 @@ public class Client1 {
                 len = restore(input);
 
                 if (type == 1) {
+                    System.out.println("Client is Connect");
                     myID  = 12345;
                     is.read(input);
                     int req = restore(input);
