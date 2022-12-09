@@ -13,10 +13,12 @@ public class threadServer extends Thread {
     public static int whiteScore = 0;
     public static int blackID = 12345;
     public static int whiteID = 12346;
-    public static int nextID = 12346;
+    public static int nextID = 12345;
+    public static int winID = 0;
+    public static int numPlayer = 0;
+    public static List<Integer> point = new ArrayList<Integer>();
     public static List<ConnectionHandler> clients = new ArrayList<>();
     public static Object lock = new Object();
-    public static List<Integer> point = new ArrayList<Integer>();
     public static String turn = "BLACK";
     public static int map[][] =
                     {{0,0,0,0,0,0,0,0},
@@ -358,65 +360,6 @@ public class threadServer extends Thread {
         return out;
     }
 
-    // Khởi tạo gói tin gửi lên web server
-    public static byte[] web_pkt(int action, int len_ip, byte[] ip, int port, int type_socket,
-                                 int len_game, byte[] game, int len_info, byte[] info, int len_author, byte[] author) {
-        byte[] ac = convert_data(action);
-        byte[] lenIp = convert_data(len_ip);
-        byte[] p = convert_data(port);
-        byte[] skt = convert_data(type_socket);
-        byte[] gm = convert_data(len_game);
-        byte[] inf = convert_data(len_info);
-        byte[] au = convert_data(len_author);
-
-        int len_skt = 28 + len_ip + len_game + len_info + len_author;
-
-        byte[] out = new byte[len_skt];
-
-        for (int i = 0; i < 4; i++) {
-            out[i] = ac[i];
-            out[i+4] = lenIp[i];
-        }
-
-        for (int i = 8; i< 8 + ip.length; i++) {
-            out[i] = ip[i-8];
-        }
-
-        for (int i = 8 + ip.length; i < 12 + ip.length; i++) {
-            out[i] = p[i-8-ip.length];
-        }
-
-        for (int i = 12 + ip.length; i < 16 + ip.length; i++) {
-            out[i] = skt[i-12-ip.length];
-        }
-
-        for (int i = 16 + ip.length; i < 20 + ip.length; i++) {
-            out[i] = gm[i-16-ip.length];
-        }
-
-        for (int i = 20 + ip.length; i < 20 + ip.length + game.length; i++) {
-            out[i] = game[i-20-ip.length];
-        }
-
-        for (int i = 20 + ip.length + game.length; i < 24 + ip.length + game.length; i++) {
-            out[i] = inf[i-20-ip.length-game.length];
-        }
-
-        for (int i = 24 + ip.length + game.length; i < 24 + ip.length + game.length + info.length; i++) {
-            out[i] = game[i-24-ip.length-game.length];
-        }
-
-        for (int i = 24 + ip.length + game.length + info.length; i < 28 + ip.length + game.length + info.length; i++) {
-            out[i] = au[i-24-ip.length-game.length-info.length];
-        }
-
-        for (int i = 28 + ip.length + game.length + info.length; i < 28 + ip.length + game.length + info.length + author.length; i++) {
-            out[i] = game[i-28-ip.length-game.length-info.length];
-        }
-
-        return out;
-    }
-
     public void run() {
         byte[] input = new byte[4];
 
@@ -441,15 +384,18 @@ public class threadServer extends Thread {
                 else if (type == 2) {
                     is.read(input); int id = restoreInt(input);
                     System.out.println("ID người chơi: " + id);
-                    printMap(map);
+                    numPlayer++;
+                    if (numPlayer == 2) {
+                        printMap(map);
 
-                    int nextID = 12345;
-                    int length = 12 + point.size()*4;
+                        int nextID = 12345;
+                        int length = 12 + point.size()*4;
 
-                    byte[] out = pkt_map(blackScore, whiteScore, nextID, point);
-//                    System.out.println(out);
-                    os.write(set_pkt(3, length, out));
-
+                        byte[] out = pkt_map(blackScore, whiteScore, nextID, point);
+                        for (ConnectionHandler client : clients) {
+                            client.sendData(set_pkt(3, length, out));
+                        }
+                    }
                 }
                 else if (type == 4) {
                     is.read(input);  int id = restoreInt(input);
@@ -490,6 +436,9 @@ public class threadServer extends Thread {
                             id = 0;
                         }
                         for (ConnectionHandler client : clients) {
+//                            int length = 12 + point.size()*4;
+//                            byte[] out = pkt_map(blackScore, whiteScore, nextID, point);
+//                            client.sendData(set_pkt(3, length, out));
                             client.sendData(set_pkt(6, 4, convert_data(id)));
                         }
                     }

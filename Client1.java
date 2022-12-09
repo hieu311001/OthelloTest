@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 
 
 public class Client1 {
@@ -120,12 +121,101 @@ public class Client1 {
         }
     }
 
+    private static boolean canMove(int row, int col, int rowDir, int colDir, int opponent) {
+        int currentRow = row + rowDir;
+        int currentCol = col + colDir;
 
+        // Nếu vượt ra phạm vi bàn cờ thì trả về
+        if (currentRow==8 || currentRow<0 || currentCol==8 || currentCol<0)
+        {
+            return false;
+        }
+
+        // Nếu là quân cờ cùng màu hoặc không có quân cờ nào thì trả về
+        if ((map[currentRow][currentCol] != opponent && map[currentRow][currentCol] != 0) || map[currentRow][currentCol] == 0) {
+            return false;
+        }
+
+        while (map[currentRow][currentCol] == opponent) {
+            currentRow = currentRow + rowDir;
+            currentCol = currentCol + colDir;
+
+            if (currentRow==8 || currentRow<0 || currentCol==8 || currentCol<0)
+            {
+                return false;
+            }
+
+            if (map[currentRow][currentCol] != opponent && map[currentRow][currentCol] != 0) {
+                return true;
+            }
+
+
+        }
+
+        return false;
+    }
+
+    // Kiểm tra nước đi hợp lệ
+    private static boolean validMove(int x, int y) {
+        int opponent = 2; // Đối thủ là trắng
+
+        if (map[x][y] == 0) {
+            // Kiểm tra bên phải
+            if (canMove(x, y, 0, 1, opponent)) {
+                return true;
+            }
+            // Kiểm tra bên trái
+            else if (canMove(x, y, 0, -1, opponent)) {
+                return true;
+            }
+            // Kiểm tra bên dưới
+            else if (canMove(x, y, 1, 0, opponent)) {
+                return true;
+            }
+            // Kiểm tra bên trên
+            else if (canMove(x, y, -1, 0, opponent)) {
+                return true;
+            }
+            // Kiểm tra góc phải dưới
+            else if (canMove(x, y, 1, 1, opponent)) {
+                return true;
+            }
+            // Kiểm tra góc phải trên
+            else if (canMove(x, y, -1, 1, opponent)) {
+                return true;
+            }
+            // Kiểm tra góc trái trên
+            else if (canMove(x, y, -1, -1, opponent)) {
+                return true;
+            }
+            // Kiểm tra góc trái dưới
+            else if (canMove(x, y, 1, -1, opponent)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static int[] autoMove() {
+        int[] move = {-1, -1};
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                if (validMove(i, j)) {
+                    move[0] = i;
+                    move[1] = j;
+                    return move;
+                }
+            }
+        }
+        return move;
+    }
 
     public static void main(String[] args) {
         // Khởi tạo bộ đọc đầu vào từ bàn phím
         Scanner myObj = new Scanner(System.in);
 
+        Board board = new Board();
+        board.view();
         int type = 0;
         int len = 0;
         int result;
@@ -167,14 +257,15 @@ public class Client1 {
                     restore_pkt(out);
                     // Vẽ map sau khi nhận được thông tin
                     printMap(map);
-
+                    board.paint(map);
                     if(ID == myID) {
-                        System.out.println("Nhập tọa độ x: ");
-                        int x = myObj.nextInt();
-                        System.out.println("Nhập tọa độ y: ");
-                        int y = myObj.nextInt();
+//                        System.out.println("Nhập tọa độ x: ");
+//                        int x = myObj.nextInt();
+//                        System.out.println("Nhập tọa độ y: ");
+//                        int y = myObj.nextInt();
+                        int[] move = autoMove();
                         // Gửi gói tin chứa thông tin nước đi
-                        os.write(set_pkt(4, 8, pkt_turn(myID, x, y)));
+                        os.write(set_pkt(4, 8, pkt_turn(myID, move[0]+1, move[1]+1)));
                     }
                 }
                 else if (type == 5) {
@@ -209,6 +300,13 @@ public class Client1 {
                     else {
                         System.out.println("Bạn đã hòa!");
                     }
+                }
+
+                try {
+                    TimeUnit.SECONDS.sleep(1);
+                }
+                catch(InterruptedException e) {
+
                 }
             }
         } catch (IOException e) {
